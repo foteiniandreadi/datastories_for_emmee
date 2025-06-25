@@ -1,0 +1,1207 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyOE4B5LSsdRBG3POQWBEExr",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/foteiniandreadi/datastories_for_emmee/blob/main/in_gr_scraper.ipynb/final\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Κάνω Import τις περισσότερες από τις βιβλιοθήκες που θα μου χρειαστούν στην εργασία"
+      ],
+      "metadata": {
+        "id": "iNOp3qvgTAHc"
+      }
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "4IzVhpt2S5Y_"
+      },
+      "outputs": [],
+      "source": [
+        "import requests\n",
+        "from bs4 import BeautifulSoup\n",
+        "import pandas as pd3\n",
+        "import time\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import spacy\n",
+        "from wordcloud import WordCloud\n",
+        "import seaborn as sns"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Βρίσκω τα classes και τα tags των τίτλων κλπ με βάση το url ενός άρθρου, όπως έχουμε πει στα μαθήματα"
+      ],
+      "metadata": {
+        "id": "XlLnMbH6TEtR"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "url = 'https://www.in.gr/2025/06/20/politics/politiki-grammateia/tsoukalas-nd-paragei-pio-polla-skandala-ap-osa-antexei-xora-ti-fanela-tis-diafthoras-paei-stin-eyropi/'\n",
+        "\n",
+        "headers = {\n",
+        "    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'\n",
+        "}\n",
+        "\n",
+        "\n",
+        "response = requests.get(url, headers=headers)\n",
+        "\n",
+        "\n",
+        "if response.status_code == 200:\n",
+        "\n",
+        "    soup = BeautifulSoup(response.content, 'html.parser')\n",
+        "\n",
+        "    title = soup.find(\"h1\", {\"class\": \"is-semibold is-sans-serif-font is-darkblue article-headline\"})\n",
+        "    author = soup.find(\"a\", {\"class\" : \"blue-c vcard author\" })\n",
+        "    datetime = soup.find(\"div\", {\"class\" : \"is-sans-serif-font\"})\n",
+        "    main_content = soup.find(\"div\", {\"class\" : \"inner-main-article\"})\n",
+        "    if title:\n",
+        "        print(\"Title:\", title.get_text(strip=True))\n",
+        "\n",
+        "    else:\n",
+        "        print(\"Title not found.\")\n",
+        "\n",
+        "    if author:\n",
+        "      print(\"Author:\", author.get_text(strip=True))\n",
+        "    else:\n",
+        "      print(\"Author <a> tag not found.\")\n",
+        "\n",
+        "    if datetime:\n",
+        "      print(\"Datetime:\", datetime.get_text(strip=True))\n",
+        "    else:\n",
+        "      print(\"Datetime not found.\")\n",
+        "\n",
+        "\n",
+        "    for child in main_content.children:\n",
+        "\n",
+        "        if child.name == 'p':\n",
+        "            print(child.get_text(strip=True))\n",
+        "\n",
+        "        elif child.name == 'h2':\n",
+        "            print(child.get_text(strip=True))\n",
+        "\n",
+        "\n",
+        "else:\n",
+        "    print(f\"Failed to retrieve the page. Status code: {response.status_code}\")"
+      ],
+      "metadata": {
+        "id": "FzHLPdwoS8ZS"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Πάλι αντιμετωπίζω πρόβλημα γιατί μου τραβάει και σελίδες. Βρίσκω τρόπο να το ξεφορτωθώ."
+      ],
+      "metadata": {
+        "id": "S8_pvhcuTMAt"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def process_url(url):\n",
+        "    return url\n",
+        "\n",
+        "headers = {\n",
+        "    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'\n",
+        "}\n",
+        "\n",
+        "base_url = 'https://www.in.gr/politics/'\n",
+        "urls = []\n",
+        "\n",
+        "# List of unwanted paths (relative)\n",
+        "excluded_paths = [\n",
+        "    '/politics/',\n",
+        "    '/politics/page/',\n",
+        "    '/politics/diplomatia/',\n",
+        "    '/politics/politiki-grammateia/',\n",
+        "    '/politics/paraskinio/',\n",
+        "    '/politics/aftodioikisi/',\n",
+        "    '/politics/in-confidential/',\n",
+        "]\n",
+        "\n",
+        "def is_valid_article_url(url):\n",
+        "\n",
+        "    if not url.startswith(\"http\"):\n",
+        "        url = \"https://www.in.gr\" + url\n",
+        "\n",
+        "\n",
+        "    for excluded in excluded_paths:\n",
+        "        if url.startswith(\"https://www.in.gr\" + excluded):\n",
+        "            return False\n",
+        "\n",
+        "\n",
+        "    return \"/politics/\" in url and url.count(\"/\") > 4\n",
+        "\n",
+        "for page_num in range(1,28):\n",
+        "    url = base_url if page_num == 1 else f'{base_url}page/{page_num}/'\n",
+        "    print(f\"Processing page: {url}\")\n",
+        "\n",
+        "    response = requests.get(url, headers=headers)\n",
+        "    soup = BeautifulSoup(response.text, 'html.parser')\n",
+        "\n",
+        "    all_links = soup.find_all(\"a\", href=True)\n",
+        "    for link_tag in all_links:\n",
+        "        href = link_tag[\"href\"]\n",
+        "        if is_valid_article_url(href):\n",
+        "            full_url = href if href.startswith(\"http\") else \"https://www.in.gr\" + href\n",
+        "            if full_url not in urls:\n",
+        "                urls.append(process_url(full_url))\n",
+        "\n",
+        "# Print collected URLs\n",
+        "for u in urls:\n",
+        "    print(u)"
+      ],
+      "metadata": {
+        "id": "0zHtdTF9TI_D"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "urls = pd.DataFrame(urls)"
+      ],
+      "metadata": {
+        "id": "UPTSyb9CTPt9"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "urls = urls.rename(columns={0: \"url\"})"
+      ],
+      "metadata": {
+        "id": "M1m7dR6eTSGo"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Κάνω τον κώδικα όσο πιο καθαρό μπορώ για να μου τραβήξει με πιο αποτελεσματικό τρόπο τα δεδομένα. Οι μεταβλητές tags μου μειώνουν τις πιθανότητες να μην μου φέρει καθαρά αυτά που ζητάω."
+      ],
+      "metadata": {
+        "id": "cDReifPoTW9I"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import time\n",
+        "\n",
+        "articles = []\n",
+        "\n",
+        "headers = {\n",
+        "    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'\n",
+        "}\n",
+        "\n",
+        "for index, row in urls.iterrows():\n",
+        "    url = row[\"url\"]\n",
+        "    print(f\"Scraping: {url}\")\n",
+        "\n",
+        "    try:\n",
+        "        response = requests.get(url, headers=headers)\n",
+        "        soup = BeautifulSoup(response.text, \"html.parser\")\n",
+        "\n",
+        "\n",
+        "        title_tag = soup.find(\"h1\", {\"class\": \"is-semibold is-sans-serif-font is-darkblue article-headline\"})\n",
+        "        title = title_tag.get_text(strip=True) if title_tag else None\n",
+        "\n",
+        "\n",
+        "        author_tag = soup.find(\"a\", {\"class\" : \"blue-c vcard author\" })\n",
+        "        author = author_tag.get_text(strip=True) if author_tag else None\n",
+        "\n",
+        "        date_tag = soup.find(\"div\", {\"class\" : \"is-sans-serif-font\"})\n",
+        "        datetime = date_tag.get_text(strip=True) if date_tag else None\n",
+        "\n",
+        "\n",
+        "        content_tag = soup.find(\"div\", {\"class\" : \"inner-main-article\"})\n",
+        "        if content_tag:\n",
+        "            paragraphs = []\n",
+        "            for child in content_tag.children:\n",
+        "                if child.name in ['p', 'h2']:\n",
+        "                    text = child.get_text(strip=True)\n",
+        "                    if text:\n",
+        "                        paragraphs.append(text)\n",
+        "            full_text = \"\\n\".join(paragraphs)\n",
+        "        else:\n",
+        "            full_text = None\n",
+        "\n",
+        "\n",
+        "        articles.append({\n",
+        "            \"url\": url,\n",
+        "            \"title\": title,\n",
+        "            \"author\": author,\n",
+        "            \"datetime\": datetime,\n",
+        "            \"text\": full_text\n",
+        "        })\n",
+        "\n",
+        "        time.sleep(1.5)\n",
+        "\n",
+        "    except Exception as e:\n",
+        "        print(f\"Error scraping {url}: {e}\")\n",
+        "        articles.append({\n",
+        "            \"url\": url,\n",
+        "            \"title\": None,\n",
+        "            \"author\": None,\n",
+        "            \"datetime\": None,\n",
+        "            \"text\": None\n",
+        "        })\n",
+        "\n",
+        "articles_df = pd.DataFrame(articles)\n",
+        "\n",
+        "# Preview\n",
+        "print(articles_df.head())"
+      ],
+      "metadata": {
+        "id": "Gw_-iHrBTUCe"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "  in_gr_articles = articles_df"
+      ],
+      "metadata": {
+        "id": "lzB0XN5uTbE_"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive')\n",
+        "#in_gr_articles.to_csv('/content/drive/My Drive/in_gr_articles.csv', index=False)"
+      ],
+      "metadata": {
+        "id": "Izh7_OoCTe1P"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "file_path = '/content/drive/My Drive/in_gr_articles.csv'\n",
+        "in_gr_articles = pd.read_csv(file_path)"
+      ],
+      "metadata": {
+        "id": "ezVIpk_4ThTj"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "pd.set_option('display.max_rows', 1190)"
+      ],
+      "metadata": {
+        "id": "TAU85qzjTkKY"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from datetime import datetime as dt\n",
+        "import re\n",
+        "import json\n",
+        "\n",
+        "articles = []\n",
+        "\n",
+        "headers = {\n",
+        "    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'\n",
+        "}\n",
+        "\n",
+        "def clean_and_parse_greek_date(raw_date):\n",
+        "\n",
+        "    raw_date = re.sub(r'([Α-Ωα-ωάέήίόύώϊϋΐΰ])(\\d)', r'\\1 \\2', raw_date)\n",
+        "    raw_date = \" \".join(raw_date.split())\n",
+        "    try:\n",
+        "        return dt.strptime(raw_date, \"%A %d %B %Y\")\n",
+        "    except ValueError:\n",
+        "        return None\n",
+        "\n",
+        "def extract_date_from_ld_json(soup):\n",
+        "    for tag in soup.find_all(\"script\", type=\"application/ld+json\"):\n",
+        "        try:\n",
+        "            data = json.loads(tag.string)\n",
+        "            if isinstance(data, dict) and \"datePublished\" in data:\n",
+        "                return dt.fromisoformat(data[\"datePublished\"].split(\"T\")[0])\n",
+        "        except:\n",
+        "            continue\n",
+        "    return None\n",
+        "\n",
+        "for index, row in urls.iterrows():\n",
+        "    url = row[\"url\"]\n",
+        "    print(f\"Scraping: {url}\")\n",
+        "\n",
+        "    try:\n",
+        "        response = requests.get(url, headers=headers)\n",
+        "        soup = BeautifulSoup(response.text, \"html.parser\")\n",
+        "\n",
+        "        # Try <div class=\"article__date\"> first\n",
+        "        date_tag = soup.find(\"div\", class_=\"article__date\")\n",
+        "        if date_tag:\n",
+        "            raw_date = date_tag.get_text(strip=True)\n",
+        "            parsed_date = clean_and_parse_greek_date(raw_date)\n",
+        "        else:\n",
+        "\n",
+        "            parsed_date = extract_date_from_ld_json(soup)\n",
+        "\n",
+        "        articles.append({\n",
+        "            \"url\": url,\n",
+        "            \"datetime\": parsed_date\n",
+        "        })\n",
+        "\n",
+        "    except Exception as e:\n",
+        "        print(f\"Error scraping {url}: {e}\")\n",
+        "        articles.append({\n",
+        "            \"url\": url,\n",
+        "            \"datetime\": None\n",
+        "        })\n",
+        "\n",
+        "articles_df = pd.DataFrame(articles)\n",
+        "print(articles_df.head())"
+      ],
+      "metadata": {
+        "id": "VvwStNEJTmjU"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "urls = pd.DataFrame(urls)"
+      ],
+      "metadata": {
+        "id": "SVq7C9HiTpgC"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Δεν μου τραβάει σωστά την ημερομηνία οπότε πρέπει να τις περάσω manually..."
+      ],
+      "metadata": {
+        "id": "RLp4_KyOTuAv"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "merged_df = in_gr_articles.merge(\n",
+        "    articles_df[['url', 'datetime']],\n",
+        "    on='url',\n",
+        "    how='left'\n",
+        ")\n",
+        "\n",
+        "\n",
+        "merged_df = merged_df.rename(columns={'datetime': 'date'})\n",
+        "\n",
+        "\n",
+        "in_gr_articles = merged_df\n",
+        "\n",
+        "print(in_gr_articles.head())"
+      ],
+      "metadata": {
+        "id": "84iCX8bqTsFo"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "merged_df = merged_df.drop(columns=['datetime_x'])"
+      ],
+      "metadata": {
+        "id": "1W8eF-8TTyi-"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "filepath = '/content/drive/MyDrive/in_gr_articles.csv'\n",
+        "in_gr_articles.to_csv(filepath, index=False)\n",
+        "print(f\"Saved to {filepath}\")"
+      ],
+      "metadata": {
+        "id": "AeLa3oHvT1dy"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "filepath = '/content/drive/MyDrive/in_gr_articles.csv'\n",
+        "in_gr_articles = pd.read_csv(filepath)"
+      ],
+      "metadata": {
+        "id": "cKwDcMsqT3cM"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Η προσθήκη της σωστής ημερομηνίας γίνεται με βάση το url και χειροκίνητα..."
+      ],
+      "metadata": {
+        "id": "RShvUSesT98M"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles[\"text\"] = in_gr_articles[\"text\"].str.replace(r\"\\s+\", \" \", regex=True).str.strip()"
+      ],
+      "metadata": {
+        "id": "o80K6z0GT6KL"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles.loc[ in_gr_articles['url'] == 'https://www.in.gr/2025/05/28/politics/syriza-kyvernisi-mitsotaki-einai-o-fysikos-kai-ithikos-aytourgos-gia-tin-katarreysi-tou-opekepe/', 'datetime_y' ] = pd.Timestamp('2025-05-21')"
+      ],
+      "metadata": {
+        "id": "a1DUagG1UBlA"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles[in_gr_articles['datetime_y'].isna()]"
+      ],
+      "metadata": {
+        "id": "X5RiqGtAUEg6"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles = in_gr_articles.drop(index=492)"
+      ],
+      "metadata": {
+        "id": "XG-1NZKfUGwd"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles = pd.read_csv(filepath)"
+      ],
+      "metadata": {
+        "id": "R-wyzWlDUI-C"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles.rename(columns={\n",
+        "\n",
+        "    'datetime_y': 'datetime'\n",
+        "}, inplace=True)"
+      ],
+      "metadata": {
+        "id": "0avdu7r_ULOe"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles.loc[542:546, 'datetime'] = pd.to_datetime('2025-05-22').date()"
+      ],
+      "metadata": {
+        "id": "wr-g_v-PUNuV"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles.loc[465, 'datetime'] = pd.to_datetime('2025-05-26').date()"
+      ],
+      "metadata": {
+        "id": "J2jzpH_9UQOQ"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Κάνω διανυσματοποίηση και κάνω install το πακέτο της spacy"
+      ],
+      "metadata": {
+        "id": "_ysaJA6tUUwn"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.feature_extraction.text import CountVectorizer"
+      ],
+      "metadata": {
+        "id": "l8F7mUVpUSSc"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!python -m spacy download el_core_news_sm"
+      ],
+      "metadata": {
+        "id": "kujlLlkoUYM_"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "nlp = spacy.load('el_core_news_sm')"
+      ],
+      "metadata": {
+        "id": "_JywZ4GmUayZ"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles_full_text = in_gr_articles['text'].str.cat(sep = ' ')"
+      ],
+      "metadata": {
+        "id": "KsrpyrBfUdhp"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Επειδή έχω πολλά άρθρα, άρα και μεγάλο κείμενο πρέπει να αυξήσω το όριο των χαρακτήρων που μπορώ να επεξεργαστώ. Μετά προχωράω στο lemmatization και στη διαγραφή των stopwords για τα wordclouds."
+      ],
+      "metadata": {
+        "id": "oVEjkITJUfoe"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "nlp.max_length = 10000000"
+      ],
+      "metadata": {
+        "id": "SbN9nySoUiTd"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles_full_doc = nlp(in_gr_articles_full_text)"
+      ],
+      "metadata": {
+        "id": "Mh3ha-q8Un8j"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "lemmatized_text = ' '.join(token.lemma_ for token in in_gr_articles_full_doc)"
+      ],
+      "metadata": {
+        "id": "7yz7l7IzUoT2"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "stopwords = nlp.Defaults.stop_words\n",
+        "stopwords.add(\"ς\")\n",
+        "stopwords.add(\"μπορώ\")\n",
+        "stopwords.add(\"αναφέρω\")\n",
+        "stopwords.add(\"υπάρχω\")\n",
+        "stopwords.add(\"γίνομαι\")\n",
+        "stopwords.add(\"ή\")\n",
+        "stopwords.add(\"κάνω\")\n",
+        "stopwords.add(\"θέλω\")\n",
+        "stopwords.add(\"κ\")\n",
+        "stopwords.add(\"λέγω\")\n",
+        "stopwords.add(\"τονίζω\")\n",
+        "stopwords.add(\"σημείωσε\")\n",
+        "stopwords.add(\"προχωρώ\")\n",
+        "stopwords.add(\"επισήμανε\")"
+      ],
+      "metadata": {
+        "id": "7QGANt2cUq3J"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "wordcloud_in_gr_articles = WordCloud(\n",
+        "    stopwords=nlp.Defaults.stop_words,\n",
+        "    width=2000,\n",
+        "    height=1000,\n",
+        "    background_color='black'\n",
+        ").generate(lemmatized_text)"
+      ],
+      "metadata": {
+        "id": "6NyJeX3WUtwQ"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "fig = plt.figure(figsize=(40, 30), facecolor='k', edgecolor='k')\n",
+        "plt.imshow(wordcloud_in_gr_articles, interpolation='bilinear')\n",
+        "plt.axis('off')\n",
+        "plt.tight_layout(pad=0)\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "id": "tDjuItDLUv6U"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Κάνω vectorizing για να φτιάξω τα διγράμματα."
+      ],
+      "metadata": {
+        "id": "l1-lC0JXU1D5"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "cv = CountVectorizer(stop_words= list(nlp.Defaults.stop_words), min_df=0.01, max_df=0.95)"
+      ],
+      "metadata": {
+        "id": "RBxmBS5nUyA-"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles[\"text\"] = in_gr_articles[\"text\"].fillna(\"\")\n",
+        "count_vector = cv.fit_transform(in_gr_articles[\"text\"])"
+      ],
+      "metadata": {
+        "id": "Rks-2-dnU4BM"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "count_vector = cv.fit_transform(in_gr_articles[\"text\"])"
+      ],
+      "metadata": {
+        "id": "OJfhiPXuU7XO"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "cv = CountVectorizer(stop_words= list(nlp.Defaults.stop_words), max_features=40, ngram_range=(2,2))\n",
+        "count_vector = cv.fit_transform(in_gr_articles[\"text\"])\n",
+        "in_gr_articles_bigrams = pd.DataFrame(count_vector.toarray(), columns=cv.get_feature_names_out())"
+      ],
+      "metadata": {
+        "id": "6IzXpaP2U9fv"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles_bigrams.sum(axis =0).sort_values(ascending = False)"
+      ],
+      "metadata": {
+        "id": "4o5eeao4VAbX"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Φτιάχνω ένα custom λεξικό με τα διγράμματα που βρήκα για να συνενώσω τις ίδιες αναφορές (πχ νέα δημοκρατία και νέας δημοκρατίας), για καλύτερα αποτελέσματα."
+      ],
+      "metadata": {
+        "id": "tMquuDloVGtF"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data = { \"συριζα πς\" :\t224,\n",
+        "\"νέας δημοκρατίας\"\t: 154,\n",
+        "\"νέα δημοκρατία\"\t: 152,\n",
+        "\"πασοκ κιναλ\" :\t145,\n",
+        "\"κυριάκος μητσοτάκης\" :\t134,\n",
+        "\"νέα αριστερά\"\t: 109,\n",
+        "\"αλέξη τσίπρα\"\t:108,\n",
+        "\"σωκράτης φάμελλος\"\t: 98,\n",
+        "\"προανακριτικής επιτροπής\" :\t91,\n",
+        "\"νέας αριστεράς\"\t: 89,\n",
+        "\"μέση ανατολή\"\t: 82,\n",
+        "\"προοδευτική συμμαχία\"\t: 81,\n",
+        "\"σύσταση προανακριτικής\"\t: 81,\n",
+        "\"κυριάκο μητσοτάκη\"\t: 76,\n",
+        "\"νίκος ανδρουλάκης\"\t: 74,\n",
+        "\" κινήματος αλλαγής\"\t: 74,\n",
+        "\"εκπρόσωπος τύπου\"\t:73,\n",
+        "\"ελληνική κυβέρνηση\"\t:67,\n",
+        "\"αλέξης τσίπρας\"\t: 67,\n",
+        "\"κυβερνητικός εκπρόσωπος\" :\t62,\n",
+        "\"κυριάκου μητσοτάκη\"\t:61,\n",
+        "\"πρόεδρος συριζα\" :\t60,\n",
+        "\"εξωτερική πολιτική\"\t: 60,\n",
+        "\"blue skies\"\t: 59,\n",
+        "\"σκάνδαλο οπεκεπε\" :\t57,\n",
+        "\"πρόεδρος πασοκ\"\t: 56,\n",
+        "\"μέλος επανεκκίνησης\"\t: 53,\n",
+        "\"έλληνες πολίτες\"\t: 53,\n",
+        "\"ανθρωπιστικής βοήθειας\"\t: 53,\n",
+        "\"υπουργός εξωτερικών\"\t:49,\n",
+        "\"υπουργείο εξωτερικών\"\t:49,\n",
+        "\"συμβουλίου ασφαλείας\" :\t49,\n",
+        "\"παύλος μαρινάκης\"\t:49,\n",
+        "\"σύμφωνα πληροφορίες\":\t48,\n",
+        "\"αγίας αικατερίνης\"\t:48,\n",
+        "\"χαριλάου τρικούπη\" :\t48,\n",
+        "\"διεθνές δίκαιο\"\t: 47}\n",
+        "\n",
+        "data[\"Νέα Δημοκρατία/Νέας Δημοκρατίας\"] = data.pop(\"νέας δημοκρατίας\") + data.pop(\"νέα δημοκρατία\")\n",
+        "data['Κυριάκος Μητσοτάκης/Κυριάκου Μητσοτάκη/Κυριάκο Μητσοτάκη'] = data.pop('κυριάκος μητσοτάκης')  + data.pop('κυριάκου μητσοτάκη') + data.pop('κυριάκο μητσοτάκη')\n",
+        "data['Αλέξης Τσίπρας/Αλέξη Τσίπρα'] = data.pop('αλέξης τσίπρας') + data.pop('αλέξη τσίπρα')\n",
+        "\n",
+        "df = pd.DataFrame(list(data.items()), columns=['Διγράμματα', 'Αναφορές'])\n",
+        "\n",
+        "df = df.sort_values(by='Αναφορές', ascending=False)\n",
+        "\n",
+        "plt.figure(figsize=(10, 8))\n",
+        "plt.barh(df['Διγράμματα'], df['Αναφορές'], color='blue', edgecolor= 'black')\n",
+        "bars = plt.barh(df['Διγράμματα'], df['Αναφορές'], color='blue', edgecolor= 'black')\n",
+        "for bar in bars:\n",
+        "    plt.text(\n",
+        "        bar.get_width() + 2, bar.get_y() + bar.get_height() / 2,\n",
+        "        str(bar.get_width()),\n",
+        "        va='center',\n",
+        "        ha='left',\n",
+        "        color='red',\n",
+        "        fontsize=10\n",
+        "    )\n",
+        "\n",
+        "plt.xlabel('Αναφορές')\n",
+        "plt.ylabel('Διγράμματα')\n",
+        "plt.xlim(0,400)\n",
+        "plt.title('Διγράμματα Αναφορών in.gr, Μάιος - Ιούνιος 2025')\n",
+        "plt.gca().invert_yaxis()\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "id": "xbH9Fc4qVHQ1"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "κάνω ανάλυση των άρθρων ανά μέρα με βάση την ημερομηνία. Το in.gr έχει μόνο ημερομηνία και όχι ώρα, οπότε δεν χρειάζεται να τα διαχωρίσω."
+      ],
+      "metadata": {
+        "id": "mOaa0_0dVOaN"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datetime_counts = in_gr_articles['datetime'].value_counts().sort_index()\n",
+        "\n",
+        "\n",
+        "print(datetime_counts.sort_values(ascending=False).head(10))\n",
+        "\n",
+        "plt.figure(figsize=(12,6))\n",
+        "datetime_counts.plot(kind='bar')\n",
+        "plt.title(\"Number of Articles Published per Day\")\n",
+        "plt.xlabel(\"Date\")\n",
+        "plt.ylabel(\"Article Count\")\n",
+        "plt.xticks(rotation=45)\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "id": "jELBIqS9VRLd"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datetime_counts_table = (\n",
+        "    in_gr_articles['datetime']\n",
+        "    .value_counts()\n",
+        "    .rename_axis('datetime')\n",
+        "    .reset_index(name='article_count')\n",
+        "    .sort_values(by='article_count', ascending=False)\n",
+        ")\n",
+        "\n",
+        "# Display the table\n",
+        "datetime_counts_table.head(10)"
+      ],
+      "metadata": {
+        "id": "op--2NzIVT2n"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datetime_counts = in_gr_articles['datetime'].value_counts().sort_index()\n",
+        "\n",
+        "\n",
+        "fig, ax = plt.subplots(figsize=(14, 6))\n",
+        "bars = ax.bar(datetime_counts.index.astype(str), datetime_counts.values, color='red', edgecolor='black')\n",
+        "\n",
+        "\n",
+        "ax.set_title(\"In.gr - Δημοσιευμένα Άρθρα ανά μέρα\", fontsize=16, weight='bold')\n",
+        "ax.set_xlabel(\"Ημερομηνίες\", fontsize=12)\n",
+        "ax.set_ylabel(\"Άρθρα\", fontsize=12)\n",
+        "\n",
+        "\n",
+        "ax.set_ylim(0, 50)\n",
+        "\n",
+        "\n",
+        "for bar in bars:\n",
+        "    height = bar.get_height()\n",
+        "    ax.text(bar.get_x() + bar.get_width()/2, height + 0.5, str(height), ha='center', va='bottom', fontsize=9)\n",
+        "\n",
+        "\n",
+        "plt.xticks(rotation=45, ha='right', fontsize=10)\n",
+        "plt.yticks(fontsize=10)\n",
+        "ax.grid(axis='y', linestyle='--', alpha=0.7)\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n"
+      ],
+      "metadata": {
+        "id": "_wdZl887VWX7"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Περνάω στην ανάλυση συναισθημάτων. Κάνω import to emolex και όσα έχουμε μάθει για να μετρήσω το polarity (θετικές λέξεις - αρνητικές). Μετά συνδυάζω την πολικότητα με τη στήλη της ημερομηνίας για να βρω την πολικότητα ανά μέρα."
+      ],
+      "metadata": {
+        "id": "Bhu2cahOVcWN"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "filepath2 = \"https://raw.githubusercontent.com/datajour-gr/DataJournalism/main/Bachelor%20Lessons%202023/Lesson%2010/NRC_GREEK_Translated_6_2020.csv\""
+      ],
+      "metadata": {
+        "id": "bGyOdHVwVc3B"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "emolex_df = pd.read_csv(filepath2)"
+      ],
+      "metadata": {
+        "id": "AcNaWtllVfJJ"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "emolex_df = emolex_df.drop_duplicates(subset=['word'])\n",
+        "emolex_df = emolex_df.dropna()\n",
+        "emolex_df.reset_index(inplace = True, drop=True)"
+      ],
+      "metadata": {
+        "id": "WfBbkbBHVh-U"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "vec = CountVectorizer(analyzer = 'word', vocabulary = emolex_df.word,\n",
+        "                      lowercase=False,\n",
+        "                      strip_accents = 'unicode',\n",
+        "                      stop_words= list(nlp.Defaults.stop_words),\n",
+        "                      ngram_range=(1, 2))"
+      ],
+      "metadata": {
+        "id": "IgAHeT6QVkXn"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "clean_texts = in_gr_articles[\"text\"].dropna()\n",
+        "\n",
+        "matrix = vec.fit_transform(clean_texts)\n",
+        "vocab = vec.get_feature_names_out()\n",
+        "wordcount_df = pd.DataFrame(matrix.toarray(), columns=vocab)"
+      ],
+      "metadata": {
+        "id": "9wRuwMEUVmoC"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#clean_texts"
+      ],
+      "metadata": {
+        "id": "9ZpdOlnAVo66"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "positive_words = emolex_df[emolex_df.Positive == 1]['word']"
+      ],
+      "metadata": {
+        "id": "IobH3aZUVq4v"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "negative_words = emolex_df[emolex_df.Negative == 1]['word']"
+      ],
+      "metadata": {
+        "id": "NOItLZ6UVsu4"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles['positive_text'] = wordcount_df[positive_words].sum(axis=1)"
+      ],
+      "metadata": {
+        "id": "5BHvYoOwVu2I"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles['negative_text'] = wordcount_df[negative_words].sum(axis=1)"
+      ],
+      "metadata": {
+        "id": "j6Jugp8SVw9V"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles['pos/neg_text'] = in_gr_articles['positive_text'] - in_gr_articles['negative_text']"
+      ],
+      "metadata": {
+        "id": "M4AyBqHbVzK9"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "float(in_gr_articles['pos/neg_text'].mean().round(2))"
+      ],
+      "metadata": {
+        "id": "B3SJHQvEV1f0"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles_copy = in_gr_articles"
+      ],
+      "metadata": {
+        "id": "KvRXiFHgV3UX"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles_copy['datetime'] = pd.to_datetime(in_gr_articles_copy['datetime'])"
+      ],
+      "metadata": {
+        "id": "ektnsSUiV5PY"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "in_gr_articles_copy.set_index('datetime', inplace=True)"
+      ],
+      "metadata": {
+        "id": "b-Xz-4TzV7I8"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "daily_sentiment = in_gr_articles_copy['pos/neg_text'].resample('D').mean()\n",
+        "\n",
+        "colors = daily_sentiment.apply(\n",
+        "    lambda x: 'green' if x > 0 else 'red' if x < 0 else 'black'\n",
+        ")\n",
+        "\n",
+        "plt.figure(figsize=(16, 6))\n",
+        "plt.scatter(daily_sentiment.index, daily_sentiment.values,\n",
+        "            c=colors,\n",
+        "            edgecolors='black',\n",
+        "            s=70)\n",
+        "\n",
+        "plt.plot(daily_sentiment.index, daily_sentiment.values,\n",
+        "         linestyle='-', color='gray', linewidth=1)\n",
+        "\n",
+        "plt.title(\"Ημερήσια Μέση Θετικότητα/Αρνητικότητα Άρθρων - in.gr\", fontsize=15, weight='bold')\n",
+        "plt.xlabel(\"Ημερομηνία\", fontsize=12)\n",
+        "plt.ylabel(\"Polarity\", fontsize=12)\n",
+        "plt.ylim(-4, 12)\n",
+        "plt.xticks(rotation=90)\n",
+        "plt.grid(axis='y', linestyle='--', alpha=0.6)\n",
+        "\n",
+        "plt.xticks(ticks=daily_sentiment.index, labels=[d.strftime('%d-%m-%Y') for d in daily_sentiment.index])\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "KCCDF-atV9O0"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
