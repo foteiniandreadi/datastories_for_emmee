@@ -1,0 +1,1160 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyOCsv+3SCQEqsGhnfMzCoDl",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/foteiniandreadi/datastories_for_emmee/blob/main/kathimerini_scraper.ipynb/final\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "RxcybV7LNi40"
+      },
+      "outputs": [],
+      "source": [
+        "import requests\n",
+        "from bs4 import BeautifulSoup\n",
+        "import pandas as pd\n",
+        "import time\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import spacy\n",
+        "from wordcloud import WordCloud\n",
+        "import seaborn as sns"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "βρίσκω τα classes και τα tags των τίτλων κλπ με βάση το url ενός άρθρου, όπως έχουμε πει στα μαθήματα"
+      ],
+      "metadata": {
+        "id": "WiudqCyON3Ma"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "url = 'https://www.kathimerini.gr/politics/563660638/marinakis-gia-konstantopoyloy-threfetai-apo-arnitika-gegonota-kai-otan-den-yparchoyn-ta-dimioyrgei/'\n",
+        "\n",
+        "\n",
+        "headers = {\n",
+        "    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'\n",
+        "}\n",
+        "\n",
+        "\n",
+        "response = requests.get(url, headers=headers)\n",
+        "\n",
+        "\n",
+        "if response.status_code == 200:\n",
+        "\n",
+        "    soup = BeautifulSoup(response.content, 'html.parser')\n",
+        "\n",
+        "\n",
+        "    title = soup.find(\"h1\", {\"class\": \"entry-title mb-5 mt-2\"})\n",
+        "    author = soup.find(\"a\", {\"class\": \"url fn n\"})\n",
+        "    datetime = soup.find(\"time\", {\"class\" : \"entry-date published\"})\n",
+        "\n",
+        "    if title:\n",
+        "        print(\"Title:\", title.get_text(strip=True))\n",
+        "    else:\n",
+        "        print(\"Title not found.\")\n",
+        "\n",
+        "\n",
+        "\n",
+        "    if author:\n",
+        "      print(\"Author:\", author.get_text(strip=True))\n",
+        "    else:\n",
+        "      print(\"Author <a> tag not found.\")\n",
+        "\n",
+        "    if datetime:\n",
+        "      print(\"datetime\", datetime.get_text(strip=True))\n",
+        "    else:\n",
+        "      print(\"datetime not found\")\n",
+        "\n",
+        "    main_content = soup.find(\"div\", {\"class\" : \"column p-0 entry-content content\"})\n",
+        "\n",
+        "    for child in main_content.children:\n",
+        "\n",
+        "        if child.name == 'p':\n",
+        "            print(child.get_text(strip=True))\n",
+        "\n",
+        "        elif child.name == 'h2':\n",
+        "            print(child.get_text(strip=True))\n",
+        "\n",
+        "\n",
+        "else:\n",
+        "    print(f\"Failed to retrieve the page. Status code: {response.status_code}\")"
+      ],
+      "metadata": {
+        "id": "ov5rIp4YN0Iw"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def process_url(url):\n",
+        "    return url\n",
+        "\n",
+        "headers = {\n",
+        "    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'\n",
+        "}\n",
+        "\n",
+        "base_url = 'https://www.kathimerini.gr/politics/'\n",
+        "urls = []\n",
+        "\n",
+        "for page_num in range(1, 3):\n",
+        "    if page_num == 1:\n",
+        "        url = base_url\n",
+        "    else:\n",
+        "        url = f'{base_url}page/{page_num}/'\n",
+        "\n",
+        "    print(f\"Processing page: {url}\")\n",
+        "    response = requests.get(url, headers=headers)\n",
+        "    soup = BeautifulSoup(response.text, 'html.parser')\n",
+        "\n",
+        "    all_links = soup.find_all(\"a\")\n",
+        "    for link_tag in all_links:\n",
+        "        if link_tag.has_attr(\"href\"):\n",
+        "            article_url = link_tag[\"href\"]\n",
+        "\n",
+        "\n",
+        "            if (\n",
+        "                \"/politics/\" in article_url and\n",
+        "                \"page/\" not in article_url and\n",
+        "                \"/politics/\" != article_url and\n",
+        "                article_url.count(\"/\") > 2 and\n",
+        "                article_url not in urls\n",
+        "            ):\n",
+        "\n",
+        "                if not article_url.startswith(\"http\"):\n",
+        "                    article_url = \"https://www.kathimerini.gr\" + article_url\n",
+        "\n",
+        "                urls.append(process_url(article_url))\n",
+        "\n",
+        "\n",
+        "for u in urls:\n",
+        "    print(u)\n"
+      ],
+      "metadata": {
+        "id": "zvaMz6jtN-hg"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Με τις κατάλληλες παραμέτρους τραβάω μόνο τα urls των άρθρων"
+      ],
+      "metadata": {
+        "id": "cEqrIBsQOSo2"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "len(urls)"
+      ],
+      "metadata": {
+        "id": "iJRh9yR6OKrI"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import re\n",
+        "\n",
+        "\n",
+        "def process_url(url):\n",
+        "    return url\n",
+        "\n",
+        "headers = {\n",
+        "    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'\n",
+        "}\n",
+        "\n",
+        "base_url = 'https://www.kathimerini.gr/politics/'\n",
+        "urls = []\n",
+        "max_pages = 34\n",
+        "\n",
+        "article_pattern = re.compile(r\"(https://www\\.kathimerini\\.gr)?/politics/\\d+/\")\n",
+        "\n",
+        "for page_num in range(1, max_pages + 1):\n",
+        "    if page_num == 1:\n",
+        "        url = base_url\n",
+        "    else:\n",
+        "        url = f'{base_url}page/{page_num}/'\n",
+        "\n",
+        "    print(f\"Processing page: {url}\")\n",
+        "    response = requests.get(url, headers=headers)\n",
+        "    soup = BeautifulSoup(response.text, 'html.parser')\n",
+        "\n",
+        "    found_new = False\n",
+        "\n",
+        "    all_links = soup.find_all(\"a\")\n",
+        "    for link_tag in all_links:\n",
+        "        if link_tag.has_attr(\"href\"):\n",
+        "            article_url = link_tag[\"href\"]\n",
+        "\n",
+        "            if article_pattern.search(article_url) and article_url not in urls:\n",
+        "                if not article_url.startswith(\"http\"):\n",
+        "                    article_url = \"https://www.kathimerini.gr\" + article_url\n",
+        "\n",
+        "                urls.append(process_url(article_url))\n",
+        "                found_new = True\n",
+        "\n",
+        "    if not found_new:\n",
+        "        print(\"No new articles found, stopping.\")\n",
+        "        break\n",
+        "\n",
+        "print(f\"\\nFound {len(urls)} article URLs:\")\n",
+        "for u in urls:\n",
+        "    print(u)\n"
+      ],
+      "metadata": {
+        "id": "FnAIJPN5OZrH"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "len(urls)"
+      ],
+      "metadata": {
+        "id": "h3zleESSOd3i"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "urls = pd.DataFrame(urls)"
+      ],
+      "metadata": {
+        "id": "E9T300p_OhSj"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "urls = urls.rename(columns={0: \"url\"})"
+      ],
+      "metadata": {
+        "id": "XN4h7VoiOssB"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "urls"
+      ],
+      "metadata": {
+        "id": "HotcqGROOwF1"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import time\n",
+        "\n",
+        "articles = []\n",
+        "\n",
+        "headers = {\n",
+        "    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'\n",
+        "}\n",
+        "\n",
+        "for index, row in urls.iterrows():\n",
+        "    url = row[\"url\"]\n",
+        "    print(f\"Scraping: {url}\")\n",
+        "\n",
+        "    try:\n",
+        "        response = requests.get(url, headers=headers)\n",
+        "        soup = BeautifulSoup(response.text, \"html.parser\")\n",
+        "\n",
+        "\n",
+        "        title_tag = soup.find(\"h1\", class_=\"entry-title mb-5 mt-2\")\n",
+        "        title = title_tag.get_text(strip=True) if title_tag else None\n",
+        "\n",
+        "\n",
+        "        author_tag = soup.find(\"a\", class_=\"url fn n\")\n",
+        "        author = author_tag.get_text(strip=True) if author_tag else None\n",
+        "\n",
+        "        date_tag = soup.find(\"time\", class_=\"entry-date published\")\n",
+        "        datetime = date_tag.get_text(strip=True) if date_tag else None\n",
+        "\n",
+        "\n",
+        "        content_tag = soup.find(\"div\", class_=\"column p-0 entry-content content\")\n",
+        "        if content_tag:\n",
+        "            paragraphs = []\n",
+        "            for child in content_tag.children:\n",
+        "                if child.name in ['p', 'h2']:\n",
+        "                    text = child.get_text(strip=True)\n",
+        "                    if text:\n",
+        "                        paragraphs.append(text)\n",
+        "            full_text = \"\\n\".join(paragraphs)\n",
+        "        else:\n",
+        "            full_text = None\n",
+        "\n",
+        "\n",
+        "        articles.append({\n",
+        "            \"url\": url,\n",
+        "            \"title\": title,\n",
+        "            \"author\": author,\n",
+        "            \"datetime\": datetime,\n",
+        "            \"text\": full_text\n",
+        "        })\n",
+        "\n",
+        "        time.sleep(1)\n",
+        "\n",
+        "    except Exception as e:\n",
+        "        print(f\"Error scraping {url}: {e}\")\n",
+        "        articles.append({\n",
+        "            \"url\": url,\n",
+        "            \"title\": None,\n",
+        "            \"author\": None,\n",
+        "            \"datetime\": None,\n",
+        "            \"text\": None\n",
+        "        })\n",
+        "\n",
+        "articles_df = pd.DataFrame(articles)\n",
+        "\n",
+        "# Preview\n",
+        "print(articles_df.head())\n"
+      ],
+      "metadata": {
+        "id": "bWVWCJKoOyZs"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df = articles_df"
+      ],
+      "metadata": {
+        "id": "fp74vLjIO1gM"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive')"
+      ],
+      "metadata": {
+        "id": "eA5fbUkeO4yB"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Αποθηκεύω το dataframe μου για να δουλέψω στη συνέχεια με αυτό"
+      ],
+      "metadata": {
+        "id": "PK-cawzFPEUl"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive')\n",
+        "\n",
+        "\n",
+        "#kathimerini_df.to_csv('/content/drive/My Drive/kathimerini_df.csv', index=False)"
+      ],
+      "metadata": {
+        "id": "fR-QwSVuO7Ch"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "file_path = '/content/drive/My Drive/kathimerini_df.csv'\n",
+        "kathimerini_df = pd.read_csv(file_path)"
+      ],
+      "metadata": {
+        "id": "hWrNzFVHPI9q"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "short = kathimerini_df[[\"title\", \"datetime\"]].copy()\n"
+      ],
+      "metadata": {
+        "id": "fGqN3QD0PLjy"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Ώρα να καθαρίσω τα δεδομένα μου. Πετάω αυτά που δε μου χρειάζονται και συμπληρώνω manually τις τιμές που μου λείπουν στη στήλη datetime. Δυστυχώς είναι αρκετές..."
+      ],
+      "metadata": {
+        "id": "YGsaJesPPVOa"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df = kathimerini_df.drop([333, 335, 224, 240, 265, 297, 355, 363, 377])"
+      ],
+      "metadata": {
+        "id": "TiyOq7y2POv1"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df.loc[150, \"datetime\"] = \"06.06.2025 • 21:22\"\n",
+        "kathimerini_df.loc[153, \"datetime\"] = \"06.06.2025 • 15:25\"\n",
+        "kathimerini_df.loc[165, \"datetime\"] = \"04.06.2025 • 22:45\"\n",
+        "kathimerini_df.loc[170, \"datetime\"] = \"04.06.2025 • 17:13\"\n",
+        "kathimerini_df.loc[172, \"datetime\"] = \"04.06.2025 • 16:30\"\n",
+        "kathimerini_df.loc[173, \"datetime\"] = \"04.06.2025 • 13:54\"\n",
+        "kathimerini_df.loc[178, \"datetime\"] = \"04.06.2025 • 08:12\"\n",
+        "kathimerini_df.loc[179, \"datetime\"] = \"04.06.2025 • 07:45\"\n",
+        "kathimerini_df.loc[185, \"datetime\"] = \"03.06.2025 • 21:33\"\n",
+        "kathimerini_df.loc[188, \"datetime\"] = \"03.06.2025 • 18:20\"\n",
+        "kathimerini_df.loc[190, \"datetime\"] = \"03.06.2025 • 16:22\"\n",
+        "kathimerini_df.loc[191, \"datetime\"] = \"03.06.2025 • 14:49\"\n",
+        "kathimerini_df.loc[200, \"datetime\"] = \"03.06.2025 • 07:18\"\n",
+        "kathimerini_df.loc[201, \"datetime\"] = \"03.06.2025 • 07:10\"\n",
+        "kathimerini_df.loc[205, \"datetime\"] = \"02.06.2025 • 21:25\"\n",
+        "kathimerini_df.loc[207, \"datetime\"] = \"02.06.2025 • 20:37\"\n",
+        "kathimerini_df.loc[209, \"datetime\"] = \"02.06.2025 • 19:30\"\n",
+        "kathimerini_df.loc[216, \"datetime\"] = \"02.06.2025 • 16:35\"\n",
+        "kathimerini_df.loc[217, \"datetime\"] = \"02.06.2025 • 11:23\"\n",
+        "kathimerini_df.loc[218, \"datetime\"] = \"02.06.2025 • 10:20\"\n",
+        "kathimerini_df.loc[221, \"datetime\"] = \"02.06.2025 • 07:16\"\n",
+        "kathimerini_df.loc[250, \"datetime\"] = \"30.05.2025 • 07:28\"\n",
+        "kathimerini_df.loc[266, \"datetime\"] = \"29.05.2025 • 07:03\"\n",
+        "kathimerini_df.loc[271, \"datetime\"] = \"28.05.2025 • 09:11\"\n",
+        "kathimerini_df.loc[283, \"datetime\"] = \"27.05.2025 • 16:14\"\n",
+        "kathimerini_df.loc[294, \"datetime\"] = \"27.05.2025 • 07:27\"\n",
+        "kathimerini_df.loc[295, \"datetime\"] = \"26.05.2025 • 18:50\"\n",
+        "kathimerini_df.loc[300, \"datetime\"] = \"26.05.2025 • 12:04\"\n",
+        "kathimerini_df.loc[302, \"datetime\"] = \"26.05.2025 • 08:54\"\n",
+        "kathimerini_df.loc[304, \"datetime\"] = \"26.05.2025 • 07:28\"\n",
+        "kathimerini_df.loc[307, \"datetime\"] = \"25.05.2025 • 11:14\"\n",
+        "kathimerini_df.loc[308, \"datetime\"] = \"25.05.2025 • 09:05\"\n",
+        "kathimerini_df.loc[311, \"datetime\"] = \"24.05.2025 • 13:03\"\n",
+        "kathimerini_df.loc[312, \"datetime\"] = \"24.05.2025 • 12:49\"\n",
+        "kathimerini_df.loc[316, \"datetime\"] = \"24.05.2025 • 07:52\"\n",
+        "kathimerini_df.loc[318, \"datetime\"] = \"24.05.2025 • 07:36\"\n",
+        "kathimerini_df.loc[323, \"datetime\"] = \"23.05.2025 • 14:50\"\n",
+        "kathimerini_df.loc[349, \"datetime\"] = \"22.05.2025 • 07:49\"\n",
+        "kathimerini_df.loc[353, \"datetime\"] = \"22.05.2025 • 07:00\"\n",
+        "kathimerini_df.loc[358, \"datetime\"] = \"21.05.2025 • 15:47\"\n",
+        "kathimerini_df.loc[374, \"datetime\"] = \"20.05.2025 • 09:47\"\n",
+        "kathimerini_df.loc[375, \"datetime\"] = \"20.05.2025 • 07:54\"\n",
+        "kathimerini_df.loc[376, \"datetime\"] = \"20.05.2025 • 07:05\""
+      ],
+      "metadata": {
+        "id": "rw3q0yR6PlxS"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "short[short[\"datetime\"].isna()]"
+      ],
+      "metadata": {
+        "id": "DSRzU1BQPo_S"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "ξεφορτώνομαι τoυς περιττούς χαρακτήρες από το κείμενό μου."
+      ],
+      "metadata": {
+        "id": "TzskBXZ2Pzes"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import re\n",
+        "kathimerini_df[\"text\"] = kathimerini_df[\"text\"].str.replace(r\"\\s+\", \" \", regex=True).str.strip()"
+      ],
+      "metadata": {
+        "id": "Je52UhUcP0sA"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Ώρα για ανάλυση. Κάνω import τα κατάλληλα πακέτα και ξεκινάω με το vectorizing και τη spacy."
+      ],
+      "metadata": {
+        "id": "yNWb5OMqQZqA"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.feature_extraction.text import CountVectorizer"
+      ],
+      "metadata": {
+        "id": "1Kuxd3oIP_rR"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "nlp = spacy.load('el_core_news_sm')"
+      ],
+      "metadata": {
+        "id": "FO4nnZ7TQfbC"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df_full_text = kathimerini_df['text'].str.cat(sep = ' ')"
+      ],
+      "metadata": {
+        "id": "qbpPrmgNQiVe"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Επειδή έχω πολλά άρθρα, άρα και μεγάλο κείμενο πρέπει να αυξήσω το όριο των χαρακτήρων που μπορώ να επεξεργαστώ. Μετά προχωράω στο lemmatization και στη διαγραφή των stopwords για τα wordclouds."
+      ],
+      "metadata": {
+        "id": "OStaSZaMQmiF"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "nlp.max_length = 10000000"
+      ],
+      "metadata": {
+        "id": "k1FBmugQQp1O"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df_full_doc = nlp(kathimerini_df_full_text)"
+      ],
+      "metadata": {
+        "id": "qKifmCGDQr9v"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "lemmatized_text = ' '.join(token.lemma_ for token in kathimerini_df_full_doc)"
+      ],
+      "metadata": {
+        "id": "W9K264uMQu4L"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "stopwords = nlp.Defaults.stop_words\n",
+        "stopwords.add(\"ς\")\n",
+        "stopwords.add(\"μπορώ\")\n",
+        "stopwords.add(\"αναφέρω\")\n",
+        "stopwords.add(\"υπάρχω\")\n",
+        "stopwords.add(\"γίνομαι\")\n",
+        "stopwords.add(\"ή\")\n",
+        "stopwords.add(\"κάνω\")\n",
+        "stopwords.add(\"θέλω\")\n",
+        "stopwords.add(\"κ\")\n",
+        "stopwords.add(\"λέγω\")\n",
+        "stopwords.add(\"τονίζω\")\n",
+        "stopwords.add(\"σημείωσε\")\n",
+        "stopwords.add(\"προχωρώ\")\n",
+        "stopwords.add(\"επισήμανε\")"
+      ],
+      "metadata": {
+        "id": "7GwhtfHKQxoc"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "wordcloud_kathimerini_df = WordCloud(\n",
+        "    stopwords=nlp.Defaults.stop_words,\n",
+        "    width=2000,\n",
+        "    height=1000,\n",
+        "    background_color='darkgrey'\n",
+        ").generate(lemmatized_text)"
+      ],
+      "metadata": {
+        "id": "gyX94dBGQ1bz"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "fig = plt.figure(figsize=(40, 30), facecolor='k', edgecolor='k')\n",
+        "plt.imshow(wordcloud_kathimerini_df, interpolation='bilinear')\n",
+        "plt.axis('off')\n",
+        "plt.tight_layout(pad=0)\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "id": "kZaVftEsQ415"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Κάνω vectorizing για να φτιάξω τα διγράμματα."
+      ],
+      "metadata": {
+        "id": "Jap-lH7FRG2u"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "cv = CountVectorizer(stop_words= list(nlp.Defaults.stop_words), min_df=0.01, max_df=0.95)"
+      ],
+      "metadata": {
+        "id": "2r5S09P9Q-ZF"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df[\"text\"] = kathimerini_df[\"text\"].fillna(\"\")\n",
+        "count_vector = cv.fit_transform(kathimerini_df[\"text\"])"
+      ],
+      "metadata": {
+        "id": "HADKqXXxRA5h"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "count_vector = cv.fit_transform(kathimerini_df[\"text\"])"
+      ],
+      "metadata": {
+        "id": "PPhxIek0RDfG"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "cv = CountVectorizer(stop_words= list(nlp.Defaults.stop_words), max_features=40, ngram_range=(2,4))\n",
+        "count_vector = cv.fit_transform(kathimerini_df[\"text\"])\n",
+        "kathimerini_df_bigrams = pd.DataFrame(count_vector.toarray(), columns=cv.get_feature_names_out())"
+      ],
+      "metadata": {
+        "id": "b_paopkPRLUf"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df_bigrams.sum(axis =0).sort_values(ascending = False)"
+      ],
+      "metadata": {
+        "id": "fif8LbnXROKD"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Φτιάχνω ένα custom λεξικό με τα διγράμματα που βρήκα για να συνενώσω τις ίδιες αναφορές (πχ νέα δημοκρατία και νέας δημοκρατίας), για καλύτερα αποτελέσματα."
+      ],
+      "metadata": {
+        "id": "Dy75hCSTRUPM"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data = { \"πρώην πρωθυπουργός\" : 56,\n",
+        "\"κυριάκος μητσοτάκης\" :\t56,\n",
+        "\"αλέξη τσίπρα\"\t: 54,\n",
+        "\"νέας δημοκρατίας\"\t: 41,\n",
+        "\"νέας αριστεράς\"\t: 39,\n",
+        "\"υποδομών μεταφορών\"\t: 36,\n",
+        "\"πρώην υπουργός\"\t: 35,\n",
+        "\"κράτη μέλη\"\t: 35,\n",
+        "\"πλεύση ελευθερίας\"\t: 34,\n",
+        "\"εκατ ευρώ\"\t: 33,\n",
+        "\"απε μπε\"\t: 33,\n",
+        "\"κυριάκο μητσοτάκη\"\t: 33,\n",
+        "\"πρώην υπουργό\"\t: 32,\n",
+        "\"πλεύσης ελευθερίας\" :\t30,\n",
+        "\"νέα αριστερά\"\t:30,\n",
+        "\"μονή σινά\" :\t29,\n",
+        "\"υπουργός εξωτερικών\"\t:29,\n",
+        "\"νέα δημοκρατία\" :\t29,\n",
+        "\"πρωθυπουργός κυριάκος\" :\t29,\n",
+        "\"σύμφωνα πληροφορίες\"\t: 28,\n",
+        "\"εθνικής αμυνας\" : 28,\n",
+        "\"αλέξης τσίπρας\"\t: 28,\n",
+        "\"σύσταση προανακριτικής\"\t: 28,\n",
+        "\"πρώην πρωθυπουργού\"\t: 28,\n",
+        "\"αγροτικής ανάπτυξης\"\t: 26,\n",
+        "\"πρωθυπουργός κυριάκος μητσοτάκης\"\t: 25,\n",
+        "\"πρόεδρος συριζα\"\t: 25,\n",
+        "\"αγίας αικατερίνης\"\t: 25,\n",
+        "\"χαριλάου τρικούπη\"\t: 24,\n",
+        "\"μέση ανατολή\"\t: 23,\n",
+        "\"προανακριτικής επιτροπής\" : 23,\n",
+        "\"casus belli\"\t: 22,\n",
+        "\"πηγή απε\"\t: 22,\n",
+        "\"μονής σινά\"\t: 22,\n",
+        "\"εξωτερική πολιτική\" :\t22,\n",
+        "\"κυβερνητικός εκπρόσωπος\" : 22}\n",
+        "\n",
+        "data[\"Νέα Δημοκρατία/Νέας Δημοκρατίας\"] = data.pop(\"νέας δημοκρατίας\") + data.pop(\"νέα δημοκρατία\")\n",
+        "data['Κυριάκος Μητσοτάκης/Κυριάκου Μητσοτάκη/Κυριάκο Μητσοτάκη'] = data.pop('κυριάκος μητσοτάκης') + data.pop('κυριάκο μητσοτάκη')\n",
+        "data['Αλέξης Τσίπρας/Αλέξη Τσίπρα'] = data.pop('αλέξης τσίπρας') + data.pop('αλέξη τσίπρα')\n",
+        "data['Πλεύση Ελυθερίας/Πλεύσης Ελευθερίας'] = data.pop('πλεύσης ελευθερίας') + data.pop('πλεύση ελευθερίας')\n",
+        "data['Νέα Αριστερά/Νέας Αριστεράς'] = data.pop('νέα αριστερά') + data.pop('νέας αριστεράς')\n"
+      ],
+      "metadata": {
+        "id": "of3ZVAjRRQIk"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df = pd.DataFrame(list(data.items()), columns=['Διγράμματα', 'Αναφορές'])\n",
+        "\n",
+        "df = df.sort_values(by='Αναφορές', ascending=False)\n",
+        "\n",
+        "plt.figure(figsize=(10, 8))\n",
+        "plt.barh(df['Διγράμματα'], df['Αναφορές'], color='darkgrey', edgecolor= 'black')\n",
+        "bars = plt.barh(df['Διγράμματα'], df['Αναφορές'], color='darkgrey', edgecolor= 'black')\n",
+        "for bar in bars:\n",
+        "    plt.text(\n",
+        "        bar.get_width() + 2, bar.get_y() + bar.get_height() / 2,\n",
+        "        str(bar.get_width()),\n",
+        "        va='center',\n",
+        "        ha='left',\n",
+        "        color='red',\n",
+        "        fontsize=10\n",
+        "    )\n",
+        "\n",
+        "plt.xlabel('Αναφορές')\n",
+        "plt.ylabel('Διγράμματα')\n",
+        "plt.xlim(0,120)\n",
+        "plt.title('Διγράμματα Αναφορών kathimerini.gr, Μάιος - Ιούνιος 2025')\n",
+        "plt.gca().invert_yaxis()\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "id": "BoKaANhXRYfG"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Διαχωρίζω το datetime για να κάνω ανάλυση των άρθρων ανά μέρα."
+      ],
+      "metadata": {
+        "id": "S3wGv26rReDK"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df[[\"date\", \"time\"]] = kathimerini_df[\"datetime\"].str.split(\" • \", expand=True)"
+      ],
+      "metadata": {
+        "id": "fS7SgLZKRarx"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datetime_counts = kathimerini_df['date'].value_counts().sort_index()\n",
+        "\n",
+        "\n",
+        "fig, ax = plt.subplots(figsize=(14, 6))\n",
+        "bars = ax.bar(datetime_counts.index.astype(str), datetime_counts.values, color='yellow', edgecolor='black')\n",
+        "\n",
+        "# Titles and labels\n",
+        "ax.set_title(\"Kathimerini.gr - Δημοσιευμένα Άρθρα ανά μέρα\", fontsize=16, weight='bold')\n",
+        "ax.set_xlabel(\"Ημερομηνίες\", fontsize=12)\n",
+        "ax.set_ylabel(\"Άρθρα\", fontsize=12)\n",
+        "\n",
+        "# Set Y-axis limit\n",
+        "ax.set_ylim(0, 25)\n",
+        "\n",
+        "# Add values above bars\n",
+        "for bar in bars:\n",
+        "    height = bar.get_height()\n",
+        "    ax.text(bar.get_x() + bar.get_width()/2, height + 0.5, str(height), ha='center', va='bottom', fontsize=9)\n",
+        "\n",
+        "# Beautify ticks\n",
+        "plt.xticks(rotation=45, ha='right', fontsize=10)\n",
+        "plt.yticks(fontsize=10)\n",
+        "ax.grid(axis='y', linestyle='--', alpha=0.7)\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "MVkukryzRjva"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datetime_counts_table = (\n",
+        "    kathimerini_df['date']\n",
+        "    .value_counts()\n",
+        "    .rename_axis('date')\n",
+        "    .reset_index(name='article_count')\n",
+        "    .sort_values(by='article_count', ascending=False)\n",
+        ")\n",
+        "\n",
+        "# Display the table\n",
+        "datetime_counts_table.head(10)"
+      ],
+      "metadata": {
+        "id": "WHYIIq2SRkU4"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Περνάω στην ανάλυση συναισθημάτων. Κάνω import to emolex και όσα έχουμε μάθει για να μετρήσω το polarity (θετικές λέξεις μείον αρνητικές). Μετά συνδυάζω την πολικότητα με τη στήλη της ημερομηνίας για να βρω την πολικότητα ανά μέρα."
+      ],
+      "metadata": {
+        "id": "DtjQjB1xRqjn"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "filepath2 = \"https://raw.githubusercontent.com/datajour-gr/DataJournalism/main/Bachelor%20Lessons%202023/Lesson%2010/NRC_GREEK_Translated_6_2020.csv\""
+      ],
+      "metadata": {
+        "id": "nISvQCcGRmyP"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "emolex_df = pd.read_csv(filepath2)"
+      ],
+      "metadata": {
+        "id": "0o-OAVFPRye8"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "emolex_df = emolex_df.drop_duplicates(subset=['word'])\n",
+        "emolex_df = emolex_df.dropna()\n",
+        "emolex_df.reset_index(inplace = True, drop=True)"
+      ],
+      "metadata": {
+        "id": "HeOb2lj6R0wb"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "vec = CountVectorizer(analyzer = 'word', vocabulary = emolex_df.word,\n",
+        "                      lowercase=False,\n",
+        "                      strip_accents = 'unicode',\n",
+        "                      stop_words= list(nlp.Defaults.stop_words),\n",
+        "                      ngram_range=(1, 2))"
+      ],
+      "metadata": {
+        "id": "qmLJGcDhR3Na"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "clean_texts = kathimerini_df[\"text\"].dropna()\n",
+        "\n",
+        "matrix = vec.fit_transform(clean_texts)\n",
+        "vocab = vec.get_feature_names_out()\n",
+        "wordcount_df = pd.DataFrame(matrix.toarray(), columns=vocab)"
+      ],
+      "metadata": {
+        "id": "2XdvetQXR5Qq"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#clean_texts"
+      ],
+      "metadata": {
+        "id": "fH8wEPh-R7bY"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "positive_words = emolex_df[emolex_df.Positive == 1]['word']"
+      ],
+      "metadata": {
+        "id": "qAJLMEeVR9-8"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "negative_words = emolex_df[emolex_df.Negative == 1]['word']"
+      ],
+      "metadata": {
+        "id": "xJBTxa6mR_x_"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df['positive_text'] = wordcount_df[positive_words].sum(axis=1)"
+      ],
+      "metadata": {
+        "id": "8FyT57FlSB5Z"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df['negative_text'] = wordcount_df[negative_words].sum(axis=1)"
+      ],
+      "metadata": {
+        "id": "FwBtp9IASEiw"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df['pos/neg_text'] = kathimerini_df['positive_text'] - kathimerini_df['negative_text']"
+      ],
+      "metadata": {
+        "id": "r-QYAOotSHY0"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "float(kathimerini_df['pos/neg_text'].mean().round(2))"
+      ],
+      "metadata": {
+        "id": "6zp1gbK7SJaA"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df_copy = kathimerini_df"
+      ],
+      "metadata": {
+        "id": "CQpmoyUISLRV"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "\n",
+        "kathimerini_df_copy['datetime'] = kathimerini_df_copy['datetime'].astype(str)\n",
+        "\n",
+        "\n",
+        "kathimerini_df_copy[['date', 'time']] = kathimerini_df_copy['datetime'].str.split(' • ', expand=True)"
+      ],
+      "metadata": {
+        "id": "npYQ3M3RSNZw"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#kathimerini_df_copy.head()"
+      ],
+      "metadata": {
+        "id": "1fBfmisnSPr6"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "kathimerini_df_copy['date'] = pd.to_datetime(kathimerini_df_copy['date'], format=\"%d.%m.%Y\")\n",
+        "\n",
+        "# Set datetime as index\n",
+        "kathimerini_df_copy.set_index('date', inplace=True)"
+      ],
+      "metadata": {
+        "id": "Wu8E8z-_SR7k"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "daily_sentiment = kathimerini_df_copy['pos/neg_text'].resample('D').mean()\n",
+        "\n",
+        "colors = daily_sentiment.apply(\n",
+        "    lambda x: 'green' if x > 0 else 'red' if x < 0 else 'black'\n",
+        ")\n",
+        "\n",
+        "\n",
+        "plt.figure(figsize=(16, 6))\n",
+        "plt.scatter(daily_sentiment.index, daily_sentiment.values,\n",
+        "            c=colors,\n",
+        "            edgecolors='black',\n",
+        "            s=70)\n",
+        "\n",
+        "\n",
+        "plt.plot(daily_sentiment.index, daily_sentiment.values,\n",
+        "         linestyle='-', color='gray', linewidth=1)\n",
+        "\n",
+        "\n",
+        "plt.title(\"Ημερήσια Μέση Θετικότητα/Αρνητικότητα Άρθρων - kathimerini.gr\", fontsize=15, weight='bold')\n",
+        "plt.xlabel(\"Ημερομηνία\", fontsize=12)\n",
+        "plt.ylabel(\"Μέσο Σκορ Sentiment\", fontsize=12)\n",
+        "plt.ylim(-2, 15)\n",
+        "plt.xticks(rotation=90)\n",
+        "plt.grid(axis='y', linestyle='--', alpha=0.6)\n",
+        "\n",
+        "\n",
+        "plt.xticks(ticks=daily_sentiment.index, labels=[d.strftime('%d-%m-%Y') for d in daily_sentiment.index])\n",
+        "\n",
+        "plt.ti\n"
+      ],
+      "metadata": {
+        "id": "BPVXmp9kSUL2"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
